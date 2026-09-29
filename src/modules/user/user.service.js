@@ -1,17 +1,14 @@
-import jwt from "jsonwebtoken";
-import { findById, findByIdAndUpdate } from "../../common/repository/index.js";
+import { findByIdAndUpdate } from "../../common/repository/index.js";
 import { userModel } from "../../DB/model/user.model.js";
 import {
   createLoginCredintials,
-  createToken,
-  verifyToken,
+  createRevokeToken,
+  userBaseRevokeTokenKey,
 } from "../../common/security/token.security.js";
-import {
-  ACCESS_TOKEN_EXPIERS_IN,
-  REFRESH_TOKEN_EXPIERS_IN,
-  REFRESH_TOKEN_SIGNATURE,
-} from "../../../config/config.service.js";
+import { ACCESS_TOKEN_EXPIERS_IN } from "../../../config/config.service.js";
 import { ConflictException } from "../../common/exceptions/error.exception.js";
+import { del, keys } from "../../common/services/cache.service.js";
+import { LogoutEnum } from "../../common/enum/security.enum.js";
 export const profile = async (account) => {
   return account;
 };
@@ -31,5 +28,26 @@ export const rotateToken = async (payload, user, issuer) => {
   if (currenttime < accessExpiresIn) {
     throw ConflictException();
   }
-  return await createLoginCredintials({ user, issuer });
+  const data = await createLoginCredintials({ user, issuer });
+  await createRevokeToken({ payload });
+  return data;
+};
+
+export const logout = async (payload, user, { action = LogoutEnum.DEVICE }) => {
+  switch (action) {
+    case LogoutEnum.ALL:
+      user.changeCredentialsTime = new Date();
+      await user.save();
+      await del({
+        key: await keys({
+          prefix: userBaseRevokeTokenKey({ userid: payload.sub }),
+        }),
+      });
+      break;
+
+    default:
+      await createRevokeToken({ payload });
+      break;
+  }
+  return;
 };

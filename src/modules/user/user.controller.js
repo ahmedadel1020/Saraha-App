@@ -1,7 +1,7 @@
 import { tokenTypeEnum } from "../../common/enum/security.enum.js";
 import { successResponse } from "../../common/utils/response/success.response.js";
 import { authentication } from "../../middleware/authentication.middleware.js";
-import { profile, rotateToken, update } from "./user.service.js";
+import { logout, profile, rotateToken, update } from "./user.service.js";
 import { Router } from "express";
 const router = Router();
 
@@ -26,4 +26,9 @@ router.post(
     return successResponse({ res, data });
   },
 );
+
+router.post("/logout", authentication(), async (req, res, next) => {
+  const data = await logout(req.payload, req.user, req.body);
+  return successResponse({ res, data });
+});
 export default router;

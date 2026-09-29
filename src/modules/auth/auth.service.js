@@ -1,6 +1,7 @@
 import { create, findOne } from "../../common/repository/index.js";
 import { userModel } from "../../DB/model/user.model.js";
 import {
+  BadRequestException,
   ConflictException,
   NotFoundException,
 } from "../../common/exceptions/error.exception.js";
@@ -14,11 +15,21 @@ import {
   createLoginCredintials,
   createToken,
 } from "../../common/security/token.security.js";
-import {
-  ACCESS_TOKEN_EXPIERS_IN,
-  REFRESH_TOKEN_EXPIERS_IN,
-  REFRESH_TOKEN_SIGNATURE,
-} from "../../../config/config.service.js";
+
+import { OAuth2Client } from "google-auth-library";
+import { WEB_CLIENT_ID } from "../../../config/config.service.js";
+
+import { ProviderEnum } from "../../common/enum/user.enum.js";
+const client = new OAuth2Client();
+async function verifyGoogleAccount(idToken) {
+  const ticket = await client.verifyIdToken({
+    idToken,
+    audience: WEB_CLIENT_ID,
+  });
+  const payload = ticket.getPayload();
+  if (!payload.email_verified) throw BadRequestException("email not Verified");
+  return payload;
+}
 export const signup = async ({ email, password, username, phone }) => {
   const duplicated = await findOne({
     model: userModel,
@@ -38,10 +49,40 @@ export const signup = async ({ email, password, username, phone }) => {
   return account;
 };
 
+export const signupWithGmail = async ({ idToken }, issuer) => {
+  const { name, email, picture } = await verifyGoogleAccount(idToken);
+  let status = 201;
+  const existAcc = await findOne({ model: userModel, filter: { email } });
+  if (existAcc) {
+    if (existAcc.provider != ProviderEnum.GOOGLE) {
+      throw ConflictException();
+    }
+    status = 200;
+    return {
+      status: 200,
+      data: await createLoginCredintials({ user: existAcc, issuer }),
+    };
+  }
+  const user = await create({
+    model: userModel,
+    data: {
+      username: name,
+      email,
+      confirmemail: new Date(),
+      provider: ProviderEnum.GOOGLE,
+      image: picture,
+    },
+  });
+  return {
+    status: 201,
+    data: await createLoginCredintials({ user, issuer }),
+  };
+};
+
 export const login = async ({ email, password }, issuer) => {
   const account = await findOne({
     model: userModel,
-    filter: { email },
+    filter: { email, provider: ProviderEnum.SYSTEM },
   });
   if (!account) throw NotFoundException();
   const match = await compare(password, account.password);
