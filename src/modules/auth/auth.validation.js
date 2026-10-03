@@ -20,7 +20,6 @@ export const signup = (lang) => {
       .safeExtend({
         username: generalValidationFields.username(lang),
         confirmPassword: generalValidationFields.confirmPassword(lang),
-        confirmEmail: generalValidationFields.email(lang),
         phone: generalValidationFields.phone(lang),
         gender: generalValidationFields.gender(lang),
       })
@@ -31,12 +30,6 @@ export const signup = (lang) => {
           data,
           ctx,
           lang,
-        });
-        generalValidationFields.matchFields({
-          original: "email",
-          copy: "confirmEmail",
-          data,
-          ctx,
         });
       }),
   });

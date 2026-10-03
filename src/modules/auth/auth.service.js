@@ -4,9 +4,8 @@ import {
   BadRequestException,
   ConflictException,
   NotFoundException,
-} from "../../common/exceptions/error.exception.js";
-import { hash, compare } from "../../common/security/hash.security.js";
-import jwt from "jsonwebtoken";
+} from "../../common/exceptions/index.js";
+import { hash, compare } from "../../common/security/index.js";
 import {
   decrypt,
   encryption,
@@ -27,16 +26,18 @@ async function verifyGoogleAccount(idToken) {
     audience: WEB_CLIENT_ID,
   });
   const payload = ticket.getPayload();
-  if (!payload.email_verified) throw BadRequestException("email not Verified");
+  if (!payload.email_verified)
+    throw BadRequestException({ message: "email not Verified" });
   return payload;
 }
-export const signup = async ({ email, password, username, phone }) => {
+export const signup = async (inputs) => {
+  const { email, password, username, phone, gender } = inputs.body;
   const duplicated = await findOne({
     model: userModel,
     filter: { email },
     select: "email",
   });
-  if (duplicated) throw ConflictException();
+  if (duplicated) throw ConflictException({ message: "duplicated account" });
   const account = await create({
     model: userModel,
     data: {
@@ -44,6 +45,7 @@ export const signup = async ({ email, password, username, phone }) => {
       password: await hash(password),
       username,
       phone: await encryption(phone),
+      gender,
     },
   });
   return account;
@@ -55,7 +57,7 @@ export const signupWithGmail = async ({ idToken }, issuer) => {
   const existAcc = await findOne({ model: userModel, filter: { email } });
   if (existAcc) {
     if (existAcc.provider != ProviderEnum.GOOGLE) {
-      throw ConflictException();
+      throw ConflictException({ message: "user already exist" });
     }
     status = 200;
     return {
@@ -84,8 +86,8 @@ export const login = async ({ email, password }, issuer) => {
     model: userModel,
     filter: { email, provider: ProviderEnum.SYSTEM },
   });
-  if (!account) throw NotFoundException();
+  if (!account) throw NotFoundException({ message: "user not found" });
   const match = await compare(password, account.password);
-  if (!match) throw NotFoundException();
+  if (!match) throw NotFoundException({ message: "incorrect password" });
   return await createLoginCredintials({ user: account, issuer });
 };

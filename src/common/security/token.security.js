@@ -11,7 +11,7 @@ import {
   BadRequestException,
   NotFoundException,
   UnauthorizedException,
-} from "../exceptions/error.exception.js";
+} from "../exceptions/index.js";
 import { findById, findOne } from "../repository/base.repository.js";
 import { userModel } from "../../DB/model/user.model.js";
 import { tokenTypeEnum } from "../enum/security.enum.js";
@@ -92,16 +92,16 @@ export const decodeToken = async ({
       key: userRevokeTokenKey({ userid: payload.sub, jti: payload.jti }),
     })
   ) {
-    throw UnauthorizedException("expires login credentials");
+    throw UnauthorizedException({ message: "expires login credentials" });
   }
   const user = await findById({
     model: userModel,
     id: payload.sub,
   });
-  if (!user) throw NotFoundException();
+  if (!user) throw NotFoundException({ message: "user not found" });
 
   if ((user.changeCredentialsTime?.getTime() ?? 0) > payload.iat * 1000) {
-    throw UnauthorizedException();
+    throw UnauthorizedException({ message: "expires login credentials" });
   }
   return { user, payload };
 };
@@ -145,9 +145,9 @@ export const basicAuth = async ({ email, password }) => {
     model: userModel,
     filter: { email },
   });
-  if (!user) throw NotFoundException();
+  if (!user) throw NotFoundException({ message: "user not found" });
   const match = await compare(password, user.password);
-  if (!match) throw NotFoundException();
+  if (!match) throw NotFoundException({ message: "password mismatched" });
   return user;
 };
 

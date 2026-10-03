@@ -1,5 +1,5 @@
 import { LanguageEnum } from "../common/enum/security.enum.js";
-import { BadRequestException } from "../common/exceptions/error.exception.js";
+import { BadRequestException } from "../common/exceptions/index.js";
 
 export const validation = (schema) => {
   return (req, res, next) => {
@@ -10,7 +10,10 @@ export const validation = (schema) => {
       params: req.params,
     });
     if (!validationres.success)
-      throw BadRequestException("validation error", validationres.error.issues);
+      throw BadRequestException({
+        message: `validatin error :: ${validationres.error}`,
+        extra: validationres.error.issues,
+      });
     req.validate = validationres.data;
     next();
   };
