@@ -1,10 +1,14 @@
 import { Router } from "express";
 import {
   confirmEmail,
+  confirmlogin,
+  enable2Fa,
   login,
   resendConfirmEmail,
+  resendVerifyEnable2fa,
   signup,
   signupWithGmail,
+  verifyEnable2fa,
 } from "./auth.service.js";
 import { successResponse } from "../../common/utils/response/success.response.js";
 import * as validators from "./auth.validation.js";
@@ -52,7 +56,38 @@ router.post("/login", validation(validators.login), async (req, res, next) => {
 });
 
 router.post("/2fa", validation(validators.login), async (req, res, next) => {
-  const data = await login(req.validate.body, `${req.protocol}://${req.host}`);
+  const data = await enable2Fa(req.validate.body);
   return successResponse({ res, status: 201, data });
 });
+
+router.patch(
+  "/confirm-2fa",
+  validation(validators.confirmEmail),
+  async (req, res, next) => {
+    const data = await verifyEnable2fa(req.validate.body);
+    return successResponse({ res, status: 200, data });
+  },
+);
+
+router.patch(
+  "/resend-confirm-2fa",
+  validation(validators.resendConfirmEmail),
+  async (req, res, next) => {
+    const data = await resendVerifyEnable2fa(req.validate.body);
+    return successResponse({ res, status: 200, data });
+  },
+);
+
+router.patch(
+  "/confirm-login",
+  validation(validators.confirmEmail),
+  async (req, res, next) => {
+    const data = await confirmlogin(
+      req.validate.body,
+      `${req.protocol}://${req.host}`,
+    );
+    return successResponse({ res, status: 200, data });
+  },
+);
+
 export default router;

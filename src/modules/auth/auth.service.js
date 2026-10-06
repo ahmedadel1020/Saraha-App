@@ -192,7 +192,7 @@ export const login = async (
     if (oldTrials >= maxTrials) {
       throw TooManyRequestsException({
         message:
-          "maximum otp trials has been reached try again after 5 minutes",
+          "maximum password trials has been reached try again after 5 minutes",
       });
     }
     const currentTrials = await incrBy({
@@ -206,16 +206,16 @@ export const login = async (
     }
     throw NotFoundException({ message: "incorrect password" });
   }
+
+  if (account.confirm2fa) {
+    await sendEmailOtp({ email, subject: EmailSubjectEnum.STEP_VERIFICATION });
+    return;
+  }
   await del({ key: `User${email}::password::trial` });
   return await createLoginCredintials({ user: account, issuer });
 };
 
-export const enable2Fa = async (
-  { email, password },
-  issuer,
-  maxTrials = 5,
-  blockInSeconds = 300,
-) => {
+export const enable2Fa = async ({ email, password }) => {
   const account = await findOne({
     model: userModel,
     filter: {
@@ -233,7 +233,7 @@ export const enable2Fa = async (
     if (oldTrials >= maxTrials) {
       throw TooManyRequestsException({
         message:
-          "maximum otp trials has been reached try again after 5 minutes",
+          "maximum password trials has been reached try again after 5 minutes",
       });
     }
     const currentTrials = await incrBy({
@@ -248,5 +248,77 @@ export const enable2Fa = async (
     throw NotFoundException({ message: "incorrect password" });
   }
   await del({ key: `User${email}::password::trial` });
+  await sendEmailOtp({ email, subject: EmailSubjectEnum.STEP_VERIFICATION });
+  return;
+};
+
+export const verifyEnable2fa = async ({ otp, email }) => {
+  const account = await findOne({
+    model: userModel,
+    filter: {
+      email,
+      provider: ProviderEnum.SYSTEM,
+      confirm2fa: { $exists: false },
+    },
+  });
+  if (!account) throw NotFoundException({ message: "invalid account" });
+  const hashOtp = await get({
+    key: userEmailKey({ email, subject: EmailSubjectEnum.STEP_VERIFICATION }),
+  });
+
+  if (!hashOtp || !(await compare(otp, hashOtp))) {
+    ConflictException({ message: "invalid otp" });
+  }
+  account.confirm2fa = new Date();
+  await account.save();
+  await del({
+    key: await keys({
+      prefix: userEmailKey({
+        email,
+        subject: EmailSubjectEnum.STEP_VERIFICATION,
+      }),
+    }),
+  });
+  return account;
+};
+export const resendVerifyEnable2fa = async ({ email }) => {
+  const account = await findOne({
+    model: userModel,
+    filter: {
+      email,
+      provider: ProviderEnum.SYSTEM,
+      confirmEmail: { $exists: false },
+    },
+  });
+  if (!account) throw NotFoundException({ message: "invalid account" });
+  await sendEmailOtp({ email, subject: EmailSubjectEnum.STEP_VERIFICATION });
+  return;
+};
+
+export const confirmlogin = async ({ otp, email }, issuer) => {
+  const account = await findOne({
+    model: userModel,
+    filter: {
+      email,
+      provider: ProviderEnum.SYSTEM,
+      confirm2fa: { $exists: true },
+    },
+  });
+  if (!account) throw NotFoundException({ message: "invalid account" });
+  const hashOtp = await get({
+    key: userEmailKey({ email, subject: EmailSubjectEnum.STEP_VERIFICATION }),
+  });
+
+  if (!hashOtp || !(await compare(otp, hashOtp))) {
+    ConflictException({ message: "invalid otp" });
+  }
+  await del({
+    key: await keys({
+      prefix: userEmailKey({
+        email,
+        subject: EmailSubjectEnum.STEP_VERIFICATION,
+      }),
+    }),
+  });
   return await createLoginCredintials({ user: account, issuer });
 };

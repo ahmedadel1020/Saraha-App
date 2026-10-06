@@ -29,6 +29,7 @@ const userschema = new mongoose.Schema(
     phone: String,
     DOB: Date,
     confirmEmail: Date,
+    confirm2fa: Date,
     image: String,
     coverImage: String,
     changeCredentialsTime: Date,
