@@ -34,3 +34,7 @@ export const REFRESH_ADMIN_TOKEN_SIGNATURE =
   process.env.REFRESH_ADMIN_TOKEN_SIGNATURE;
 
 export const WEB_CLIENT_ID = process.env.WEB_CLIENT_ID.split(",");
+
+export const APP_PASSWORD = process.env.APP_PASSWORD;
+export const APP_EMAIL = process.env.APP_EMAIL;
+export const APP_NAME = process.env.APP_NAME;

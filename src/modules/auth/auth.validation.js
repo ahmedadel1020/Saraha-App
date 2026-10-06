@@ -1,4 +1,4 @@
-import { z } from "zod";
+import { email, z } from "zod";
 
 import { generalValidationFields } from "../../common/validation.js";
 
@@ -32,5 +32,22 @@ export const signup = (lang) => {
           lang,
         });
       }),
+  });
+};
+
+export const confirmEmail = (lang) => {
+  return z.object({
+    body: z.strictObject({
+      email: generalValidationFields.email(lang),
+      otp: generalValidationFields.otp(lang),
+    }),
+  });
+};
+
+export const resendConfirmEmail = (lang) => {
+  return z.object({
+    body: z.strictObject({
+      email: generalValidationFields.email(lang),
+    }),
   });
 };

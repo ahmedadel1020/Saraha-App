@@ -5,6 +5,7 @@ import { globalErrorHandling } from "./middleware/index.js";
 import { authRouter, userRouter } from "./modules/index.js";
 import express from "express";
 import cors from "cors";
+import { sendEmail } from "./common/utils/index.js";
 
 const app = express();
 

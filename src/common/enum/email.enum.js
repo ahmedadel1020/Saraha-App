@@ -1,0 +1,5 @@
+export const EmailSubjectEnum = {
+  CONFIRM_EMAIL: "Confirm_Email",
+  FORGOT_PASSWORD: "Forgot_Password",
+  STEP_VERIFICATION: "2STEP_VERIFICATION",
+};

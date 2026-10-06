@@ -33,5 +33,6 @@ export const generalValidationFields = {
   confirmPassword: (lang) => z.string().min(8).max(16),
   phone: (lang) => z.e164(),
   gender: (lang) => z.enum(GenderEnum),
+  otp: (lang) => z.string().regex(/^\d{6}$/, { error: "invalid code" }),
   matchFields,
 };
