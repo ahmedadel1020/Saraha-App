@@ -11,6 +11,7 @@ const app = express();
 
 //convert buffer data
 app.use(cors(), express.json());
+app.use("/assets", express.static("./assets"));
 await testConnection(app, port);
 
 //application routing
